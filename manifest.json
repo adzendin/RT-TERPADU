@@ -1,11 +1,12 @@
 {
-  "name": "Aplikasi RT Terpadu",
-  "short_name": "RT Terpadu",
+  "name": "RT TERPADU - SURABAYA RUMAH PAHLAWAN",
+  "short_name": "RT TERPADU",
+  "description": "Sistem Administrasi, Surat-Menyurat & Lapor Warga - MODERN MANDIRI AMAN - 100% Offline & Privasi 100% Mandiri - SURABAYA RUMAH PAHLAWAN @adzendin",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#0d6efd",
-  "description": "Sistem Administrasi, Surat-Menyurat & Lapor Warga - MODERN MANDIRI AMAN",
+  "background_color": "#065f46",
+  "theme_color": "#047857",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "./icon-192.png",
@@ -19,5 +20,11 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "categories": [
+    "productivity",
+    "business"
+  ],
+  "lang": "id",
+  "dir": "ltr"
 }

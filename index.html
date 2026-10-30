@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APLIKASI RT TERPADU V1.3.3</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#047857">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <!-- QR Code Generator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      .print-only { display: block !important; }
+      body { 
+        background: white !important; 
+        color: black !important; 
+        font-size: 8.5pt !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .print-excel-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+      }
+      .print-excel-table th, 
+      .print-excel-table td {
+        border: 1px solid #333 !important;
+        padding: 2px 3px !important;
+        line-height: 1.1 !important;
+      }
+      .print-excel-table th {
+        background-color: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+      }
+      @page {
+        size: A4 landscape;
+        margin: 0.8cm;
+        @bottom-right {
+          content: "Halaman 1 dari 1";
+          font-size: 7.5pt;
+          font-family: sans-serif;
+        }
+      }
+    }
+    .print-only { display: none; }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col justify-between" x-data="rtApp()">
+
+  <!-- HEADER APLIKASI -->
+  <header class="bg-emerald-800 text-white shadow-lg no-print">
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+        <div>
+          <h1 class="text-xl font-bold tracking-tight flex items-center gap-2">
+            <i class="fa-solid fa-building-user text-amber-300"></i> APLIKASI RT TERPADU
+          </h1>
+          <p class="text-xs text-emerald-100">Sistem Administrasi, Surat-Menyurat & Lapor Warga (v1.3.3)</p>
+        </div>
+        
+        <div class="bg-emerald-900/80 border border-emerald-700/60 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2">
+          <i class="fa-solid fa-location-dot text-amber-300"></i>
+          <div>
+            <span class="block text-emerald-200 text-[10px]">Database Wilayah Aktif:</span>
+            <span class="font-semibold text-white">
+              RT <span x-text="config.rt || '05'"></span> / RW <span x-text="config.rw || '02'"></span>, 
+              Kel. <span x-text="config.kelurahan || 'Dukuh Pakis'"></span>, 
+              Kec. <span x-text="config.kecamatan || 'Dukuh Pakis'"></span>, 
+              <span x-text="config.kota || 'Surabaya'"></span>, 
+              <span x-text="config.provinsi || 'Jawa Timur'"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <div class="bg-emerald-900 text-emerald-100 shadow no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex space-x-1 sm:space-x-3 overflow-x-auto">
+        <button @click="activeTab = 'dashboard'" :class="{'bg-emerald-950 text-white font-semibold border-b-2 border-amber-300': activeTab === 'dashboard'}" class="px-3.5 py-2.5 text-xs sm:text-sm flex items-center gap-1.5 hover:bg-emerald-800 transition">
+          <i class="fa-solid fa-chart-pie"></i> Dashboard
+        </button>
+        <button @click="activeTab = 'warga'" :class="{'bg-emerald-950 text-white font-semibold border-b-2 border-amber-300': activeTab === 'warga'}" class="px-3.5 py-2.5 text-xs sm:text-sm flex items-center gap-1.5 hover:bg-emerald-800 transition">
+          <i class="fa-solid fa-users"></i> Data Warga
+        </button>
+        <button @click="activeTab = 'surat'" :class="{'bg-emerald-950 text-white font-semibold border-b-2 border-amber-300': activeTab === 'surat'}" class="px-3.5 py-2.5 text-xs sm:text-sm flex items-center gap-1.5 hover:bg-emerald-800 transition">
+          <i class="fa-solid fa-envelope-open-text"></i> Administrasi Surat
+        </button>
+        <button @click="activeTab = 'lapor'" :class="{'bg-emerald-950 text-white font-semibold border-b-2 border-amber-300': activeTab === 'lapor'}" class="px-3.5 py-2.5 text-xs sm:text-sm flex items-center gap-1.5 hover:bg-emerald-800 transition">
+          <i class="fa-solid fa-bullhorn"></i> Lapor RT & Kost
+        </button>
+        <button @click="activeTab = 'pengaturan'" :class="{'bg-emerald-950 text-white font-semibold border-b-2 border-amber-300': activeTab === 'pengaturan'}" class="px-3.5 py-2.5 text-xs sm:text-sm flex items-center gap-1.5 hover:bg-emerald-800 transition">
+          <i class="fa-solid fa-sliders"></i> Pengaturan & Backup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex-grow w-full">
+
+    <!-- 1. TAB DASHBOARD REKAPITULASI -->
+    <div x-show="activeTab === 'dashboard'" x-transition>
+      <div class="flex justify-between items-center gap-4 mb-4 no-print">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">Dashboard & Ringkasan Demografi Warga</h2>
+          <p class="text-xs text-slate-500">Statistik real-time Klaster Ekonomi, Gender, Usia, dan Hunian</p>
+        </div>
+        <button @click="window.print()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium shadow flex items-center gap-2 transition">
+          <i class="fa-solid fa-print"></i> Cetak / PDF Laporan
+        </button>
+      </div>
+
+      <div class="print-only mb-3 pb-2 border-b-2 border-black">
+        <div class="text-center uppercase font-bold tracking-wide">
+          <h2 class="text-base">RUKUN TETANGGA <span x-text="config.rt"></span> / RUKUN WARGA <span x-text="config.rw"></span></h2>
+          <h3 class="text-sm">KELURAHAN <span x-text="config.kelurahan"></span>, KECAMATAN <span x-text="config.kecamatan"></span></h3>
+          <h3 class="text-xs"><span x-text="config.kota"></span> - <span x-text="config.provinsi"></span></h3>
+          <p class="text-[9px] font-normal lowercase capitalize mt-0.5 text-gray-600">Alamat Balai: <span x-text="config.alamatBalai"></span> | Telp/WA: <span x-text="config.waKetua"></span></p>
+        </div>
+        <hr class="border-t-2 border-black mt-1">
+        <hr class="border-t border-black mt-0.5">
+      </div>
+
+      <div class="print-only mb-2">
+        <h2 class="text-center font-bold text-sm uppercase underline">RINGKASAN DEMOGRAFI & EKONOMI WARGA RT <span x-text="config.rt"></span> / RW <span x-text="config.rw"></span></h2>
+        <p class="text-center text-[9px] text-gray-600">Dicetak Pada: <span x-text="getCurrentDate()"></span></p>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[10px] text-slate-500 font-medium">Total Warga</p>
+            <p class="text-lg font-bold text-slate-800" x-text="wargaList.length + ' Jiwa'"></p>
+          </div>
+          <div class="bg-emerald-50 p-2 rounded-lg text-emerald-700"><i class="fa-solid fa-users text-base"></i></div>
+        </div>
+
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[10px] text-slate-500 font-medium">Laki-laki / Perempuan</p>
+            <p class="text-sm font-bold text-slate-800">
+              <span class="text-blue-600" x-text="getGenderCount('Laki-laki')"></span> / 
+              <span class="text-pink-600" x-text="getGenderCount('Perempuan')"></span>
+            </p>
+          </div>
+          <div class="bg-blue-50 p-2 rounded-lg text-blue-600"><i class="fa-solid fa-venus-mars text-base"></i></div>
+        </div>
+
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[10px] text-slate-500 font-medium">Usia Produktif</p>
+            <p class="text-lg font-bold text-emerald-700" x-text="getAgeGroupCount('Dewasa / Usia Produktif (26-59 thn)') + ' Jiwa'"></p>
+          </div>
+          <div class="bg-emerald-50 p-2 rounded-lg text-emerald-700"><i class="fa-solid fa-briefcase text-base"></i></div>
+        </div>
+
+        <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <p class="text-[10px] text-slate-500 font-medium">Status Hunian</p>
+            <p class="text-[11px] font-semibold text-slate-700">
+              Tetap: <span class="text-emerald-700" x-text="getHunianCount('Tetap')"></span> | Kontrak: <span class="text-amber-600" x-text="getHunianCount('Kontrak')"></span>
+            </p>
+          </div>
+          <div class="bg-amber-50 p-2 rounded-lg text-amber-600"><i class="fa-solid fa-house-user text-base"></i></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+        <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-800 border-b pb-1 mb-2 text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-bar text-emerald-700"></i> Kelompok Usia Demografi
+          </h3>
+          <table class="print-excel-table text-[10px] w-full mb-3">
+            <thead>
+              <tr>
+                <th>Kategori Usia</th>
+                <th class="text-center">Jumlah Warga</th>
+                <th class="text-center">Persentase</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="kat in ageCategories" :key="kat">
+                <tr>
+                  <td x-text="kat"></td>
+                  <td class="text-center font-bold" x-text="getAgeGroupCount(kat) + ' Jiwa'"></td>
+                  <td class="text-center" x-text="getPercentage(getAgeGroupCount(kat)) + '%'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+
+          <h3 class="font-bold text-slate-800 border-b pb-1 mb-1.5 text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-heart text-rose-500"></i> Status Perkawinan
+          </h3>
+          <div class="grid grid-cols-2 gap-1 text-[10px]">
+            <div class="p-1 bg-slate-50 border flex justify-between"><span>Belum Kawin:</span> <strong x-text="getKawinCount('Belum Kawin')"></strong></div>
+            <div class="p-1 bg-slate-50 border flex justify-between"><span>Kawin:</span> <strong x-text="getKawinCount('Kawin')"></strong></div>
+            <div class="p-1 bg-slate-50 border flex justify-between"><span>Cerai Hidup:</span> <strong x-text="getKawinCount('Cerai Hidup')"></strong></div>
+            <div class="p-1 bg-slate-50 border flex justify-between"><span>Cerai Mati:</span> <strong x-text="getKawinCount('Cerai Mati')"></strong></div>
+          </div>
+        </div>
+
+        <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+          <h3 class="font-bold text-slate-800 border-b pb-1 mb-2 text-xs flex items-center gap-1.5">
+            <i class="fa-solid fa-layer-group text-amber-500"></i> Sebaran Klaster Ekonomi (Desil)
+          </h3>
+          <table class="print-excel-table text-[10px] w-full">
+            <thead>
+              <tr>
+                <th>Klaster Desil</th>
+                <th class="text-center">Jumlah Warga</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="desil in desilCategories" :key="desil">
+                <tr>
+                  <td x-text="desil"></td>
+                  <td class="text-center font-bold" x-text="getDesilCount(desil) + ' Warga'"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="print-only mt-3 pt-2 border-t border-slate-300">
+        <div class="flex justify-end">
+          <div class="text-center w-48">
+            <p class="text-[9px] mb-0.5" x-text="(config.kota || 'Surabaya') + ', ' + getCurrentDate()"></p>
+            <p class="font-bold text-xs mb-0.5">KETUA RT <span x-text="config.rt"></span></p>
+            <div class="flex justify-center my-0.5">
+              <canvas id="qrCanvasDashboard" class="w-16 h-16 border p-0.5 bg-white"></canvas>
+            </div>
+            <p class="font-bold underline text-xs" x-text="config.namaKetua || 'Prabu Dharma'"></p>
+            <p class="text-[8px] text-slate-500">Tanda Tangan Digital WA Verifikatif</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. TAB DATA WARGA -->
+    <div x-show="activeTab === 'warga'" x-transition>
+      <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm mb-4 no-print">
+        <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
+          <button @click="openModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 rounded-lg text-xs font-semibold shadow flex items-center justify-center gap-1.5 transition">
+            <i class="fa-solid fa-user-plus"></i> Tambah Data Warga
+          </button>
+
+          <div class="flex flex-wrap items-center gap-2 flex-grow md:justify-end">
+            <input type="text" x-model="searchQuery" placeholder="Cari Nama / NIK / KK..." class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600 w-full sm:w-40">
+            
+            <select x-model="filterHunian" class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              <option value="">Semua Hunian</option>
+              <option value="Tetap">Tetap</option>
+              <option value="Kontrak">Kontrak</option>
+            </select>
+
+            <select x-model="filterAgeGroup" class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              <option value="">Semua Usia Demografi</option>
+              <template x-for="kat in ageCategories" :key="kat">
+                <option :value="kat" x-text="kat"></option>
+              </template>
+            </select>
+
+            <select x-model="filterEkonomi" class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600 max-w-[130px]">
+              <option value="">Semua Ekonomi</option>
+              <template x-for="d in desilCategories" :key="d">
+                <option :value="d" x-text="d"></option>
+              </template>
+            </select>
+
+            <select x-model="filterGender" class="border border-slate-300 rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              <option value="">Semua Gender</option>
+              <option value="Laki-laki">Laki-laki</option>
+              <option value="Perempuan">Perempuan</option>
+            </select>
+
+            <button @click="exportCSV()" class="bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition">
+              <i class="fa-solid fa-file-csv"></i> CSV
+            </button>
+            <button @click="window.print()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition">
+              <i class="fa-solid fa-file-pdf"></i> Cetak / PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="print-only mb-2">
+        <h2 class="text-center font-bold text-sm uppercase underline">LAPORAN DATA WARGA RT <span x-text="config.rt"></span> / RW <span x-text="config.rw"></span></h2>
+        <p class="text-center text-[9px] text-gray-600">Kelurahan <span x-text="config.kelurahan"></span>, Kecamatan <span x-text="config.kecamatan"></span>, <span x-text="config.kota"></span> - <span x-text="config.provinsi"></span> | Dicetak Pada: <span x-text="getCurrentDate()"></span></p>
+      </div>
+
+      <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="print-excel-table w-full text-left text-xs">
+            <thead class="bg-slate-100 text-slate-800 uppercase font-bold border-b border-slate-300 text-[10px]">
+              <tr>
+                <th class="p-1 w-5 text-center">NO</th>
+                <th class="p-1">KK</th>
+                <th class="p-1">NIK</th>
+                <th class="p-1">NAMA</th>
+                <th class="p-1 w-6 text-center">L/P</th>
+                <th class="p-1">Tempat Lahir</th>
+                <th class="p-1">Tanggal Lahir</th>
+                <th class="p-1">Alamat</th>
+                <th class="p-1 w-8 text-center">Umur</th>
+                <th class="p-1">Perkawinan</th>
+                <th class="p-1">No Tlp</th>
+                <th class="p-1">Hunian</th>
+                <th class="p-1">Klaster Ekonomi</th>
+                <th class="p-1 no-print text-center w-12">Aksi</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-[10px]">
+              <template x-for="(warga, index) in filteredWarga" :key="warga.id">
+                <tr class="hover:bg-slate-50 transition">
+                  <td class="p-1 text-center font-medium text-slate-500" x-text="index + 1"></td>
+                  <td class="p-1 whitespace-nowrap font-semibold" x-text="warga.noKK"></td>
+                  <td class="p-1 whitespace-nowrap text-slate-600" x-text="warga.nik"></td>
+                  <td class="p-1 font-bold text-emerald-900 whitespace-nowrap" x-text="warga.nama"></td>
+                  <td class="p-1 text-center font-bold" :class="warga.gender === 'Laki-laki' ? 'text-blue-600' : 'text-pink-600'" x-text="warga.gender === 'Laki-laki' ? 'L' : 'P'"></td>
+                  <td class="p-1 whitespace-nowrap" x-text="warga.tempatLahir || 'Belum Tertera'"></td>
+                  <td class="p-1 whitespace-nowrap" x-text="formatDate(warga.tanggalLahir)"></td>
+                  <td class="p-1 whitespace-nowrap font-medium" x-text="warga.alamat || '-'"></td>
+                  <td class="p-1 text-center font-bold text-emerald-800 whitespace-nowrap" x-text="calculateAge(warga.tanggalLahir) + ' thn'"></td>
+                  <td class="p-1 whitespace-nowrap" x-text="warga.statusKawin || '-'"></td>
+                  <td class="p-1 whitespace-nowrap" x-text="warga.telepon || '-'"></td>
+                  <td class="p-1 whitespace-nowrap font-semibold" x-text="warga.statusHunian"></td>
+                  <td class="p-1 whitespace-nowrap font-bold text-slate-700" x-text="warga.desil"></td>
+                  <td class="p-1 no-print text-center whitespace-nowrap">
+                    <div class="flex items-center justify-center gap-1.5">
+                      <button @click="editWarga(warga)" class="text-blue-600 hover:text-blue-800 p-0.5" title="Edit Data Warga"><i class="fa-solid fa-pen-to-square"></i></button>
+                      <button @click="deleteWarga(warga.id)" class="text-rose-600 hover:text-rose-800 p-0.5" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <template x-if="filteredWarga.length === 0">
+                <tr>
+                  <td colspan="14" class="p-4 text-center text-slate-400">Tidak ada data warga yang sesuai filter.</td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="print-only mt-3 pt-2">
+        <div class="flex justify-end">
+          <div class="text-center w-48">
+            <p class="text-[9px] mb-0.5" x-text="(config.kota || 'Surabaya') + ', ' + getCurrentDate()"></p>
+            <p class="font-bold text-xs mb-0.5">KETUA RT <span x-text="config.rt"></span></p>
+            <div class="flex justify-center my-0.5">
+              <canvas id="qrCanvasWarga" class="w-14 h-14 border p-0.5 bg-white"></canvas>
+            </div>
+            <p class="font-bold underline text-xs" x-text="config.namaKetua || 'Prabu Dharma'"></p>
+            <p class="text-[8px] text-slate-500">Tanda Tangan Digital WA Verifikatif</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. TAB ADMINISTRASI SURAT -->
+    <div x-show="activeTab === 'surat'" x-transition>
+      <div class="flex gap-2 mb-4 border-b pb-3 no-print">
+        <button @click="suratSubTab = 'keluar'" :class="suratSubTab === 'keluar' ? 'bg-emerald-700 text-white' : 'bg-white text-slate-700 border'" class="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+          <i class="fa-solid fa-paper-plane mr-1"></i> 1. Surat Keluar (Pengantar)
+        </button>
+        <button @click="suratSubTab = 'masuk'" :class="suratSubTab === 'masuk' ? 'bg-emerald-700 text-white' : 'bg-white text-slate-700 border'" class="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+          <i class="fa-solid fa-inbox mr-1"></i> 2. Surat Masuk (Agenda)
+        </button>
+        <button @click="suratSubTab = 'arsip'" :class="suratSubTab === 'arsip' ? 'bg-emerald-700 text-white' : 'bg-white text-slate-700 border'" class="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+          <i class="fa-solid fa-box-archive mr-1"></i> 3. Arsip Surat Terpadu
+        </button>
+      </div>
+
+      <!-- 3.1 SUB-TAB: SURAT KELUAR -->
+      <div x-show="suratSubTab === 'keluar'">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm no-print lg:col-span-1 space-y-4">
+            <h2 class="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+              <i class="fa-solid fa-pen-nib text-emerald-700"></i> Buat Surat Keluar
+            </h2>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Jenis Surat</label>
+              <select x-model="surat.jenis" class="w-full border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-600">
+                <option value="Surat Keterangan Domisili">Surat Keterangan Domisili</option>
+                <option value="Surat Pengantar SKCK">Surat Pengantar SKCK</option>
+                <option value="Surat Keterangan Tidak Mampu (DKTS)">Surat Keterangan Tidak Mampu (DKTS)</option>
+                <option value="Surat Pengantar Umum / Kematian / Kelahiran">Surat Pengantar Umum</option>
+              </select>
+            </div>
+
+            <div class="relative">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Cari & Pilih Warga (Ketik Nama)</label>
+              <input type="text" x-model="suratSearchQuery" @focus="showWargaDropdown = true" placeholder="Ketik nama warga (mis: pra)..." class="w-full border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-600">
+              
+              <div x-show="showWargaDropdown && filteredWargaForSurat.length > 0" @click.away="showWargaDropdown = false" class="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-44 overflow-y-auto">
+                <template x-for="w in filteredWargaForSurat" :key="w.id">
+                  <div @click="selectWargaForSurat(w)" class="p-2 text-xs hover:bg-emerald-50 cursor-pointer border-b last:border-none">
+                    <span class="font-bold text-emerald-900" x-text="w.nama"></span>
+                    <span class="text-slate-500 block text-[10px]" x-text="'NIK: ' + w.nik"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor Surat</label>
+              <input type="text" x-model="surat.noSurat" placeholder="001 / SK-RT05 / IV / 2026" class="w-full border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Keperluan / Keterangan Tambahan</label>
+              <textarea x-model="surat.keperluan" rows="3" placeholder="Contoh: Pengurusan pembukaan rekening bank" class="w-full border rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-600"></textarea>
+            </div>
+
+            <button @click="printAndSaveSuratKeluar()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 rounded-lg text-xs font-bold shadow flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-print"></i> Cetak & Simpan ke Arsip
+            </button>
+          </div>
+
+          <!-- Pratinjau Surat Keluar -->
+          <div class="bg-white p-8 rounded-lg border border-slate-200 shadow-sm lg:col-span-2">
+            <div class="text-center uppercase font-bold tracking-wide border-b-2 border-black pb-3 mb-4">
+              <h2 class="text-lg">RUKUN TETANGGA <span x-text="config.rt"></span> / RUKUN WARGA <span x-text="config.rw"></span></h2>
+              <h3 class="text-md">KELURAHAN <span x-text="config.kelurahan"></span>, KECAMATAN <span x-text="config.kecamatan"></span></h3>
+              <h3 class="text-sm"><span x-text="config.kota"></span> - <span x-text="config.provinsi"></span></h3>
+              <p class="text-[10px] font-normal lowercase capitalize mt-1 text-gray-600">Sekretariat: <span x-text="config.alamatBalai"></span> | Telp/WA: <span x-text="config.waKetua"></span></p>
+            </div>
+
+            <div class="text-center my-6">
+              <h3 class="font-bold text-base uppercase underline tracking-wider" x-text="surat.jenis"></h3>
+              <p class="text-xs text-slate-600 mt-1">Nomor: <span x-text="surat.noSurat || '.../RT/RW/...'"></span></p>
+            </div>
+
+            <div class="text-xs space-y-4 leading-relaxed text-slate-900">
+              <p>Yang bertanda tangan di bawah ini Ketua RT <span x-text="config.rt"></span> / RW <span x-text="config.rw"></span> Kelurahan <span x-text="config.kelurahan"></span>, Kecamatan <span x-text="config.kecamatan"></span> <span x-text="config.kota"></span>, dengan ini menerangkan bahwa:</p>
+
+              <table class="w-full pl-6 space-y-1 text-xs">
+                <tr>
+                  <td class="w-40 font-semibold py-1">Nama Lengkap</td>
+                  <td class="py-1">: <span class="font-bold uppercase" x-text="surat.nama || '(Belum dipilih)'"></span></td>
+                </tr>
+                <tr>
+                  <td class="font-semibold py-1">NIK / No. KK</td>
+                  <td class="py-1">: <span x-text="(surat.nik || '-') + ' / ' + (surat.noKK || '-')"></span></td>
+                </tr>
+                <tr>
+                  <td class="font-semibold py-1">Jenis Kelamin</td>
+                  <td class="py-1">: <span x-text="surat.gender || '-'"></span></td>
+                </tr>
+                <tr>
+                  <td class="font-semibold py-1">Tempat / Tgl Lahir</td>
+                  <td class="py-1">: <span x-text="(surat.tempatLahir || 'Belum Tertera') + ', ' + formatDate(surat.tanggalLahir)"></span></td>
+                </tr>
+                <tr>
+                  <td class="font-semibold py-1">Status Perkawinan</td>
+                  <td class="py-1">: <span x-text="surat.statusKawin || '-'"></span></td>
+                </tr>
+                <tr>
+                  <td class="font-semibold py-1">Pekerjaan</td>
+                  <td class="py-1">: <span x-text="surat.pekerjaan || '-'"></span></td>
+                </tr>
+                <tr>
+                  <td class="font-semibold py-1">Alamat Domisili</td>
+                  <td class="py-1">: <span x-text="(surat.alamat || '-') + ', RT ' + config.rt + ' / RW ' + config.rw + ', Kel. ' + config.kelurahan + ', Kec. ' + config.kecamatan + ', ' + config.kota + ' - ' + config.provinsi"></span></td>
+                </tr>
+              </table>
+
+              <p class="pt-2">Warga tersebut di atas benar-benar berdomisili di wilayah RT <span x-text="config.rt"></span> / RW <span x-text="config.rw"></span> kami, dan surat pengantar ini diberikan untuk keperluan:</p>
+              
+              <div class="p-3 bg-slate-50 border rounded font-semibold text-center uppercase tracking-wide">
+                <span x-text="surat.keperluan || '(Keperluan belum diisi)'"></span>
+              </div>
+
+              <p>Demikian surat pengantar ini dibuat dengan sebenarnya dan untuk dapat dipergunakan sebagaimana mestinya.</p>
+            </div>
+
+            <div class="mt-8 pt-4 flex justify-between items-end">
+              <div class="text-[10px] text-slate-500">
+                <p>Catatan:</p>
+                <p>Scan QR Code di samping untuk verifikasi</p>
+                <p>keabsahan surat melalui WhatsApp resmi Ketua RT.</p>
+              </div>
+
+              <div class="text-center w-52">
+                <p class="text-xs mb-1" x-text="(config.kota || 'Surabaya') + ', ' + getCurrentDate()"></p>
+                <p class="font-bold text-xs mb-1">KETUA RT <span x-text="config.rt"></span> / RW <span x-text="config.rw"></span></p>
+                <div class="flex justify-center my-1">
+                  <canvas id="qrCanvasSurat" class="w-20 h-20 border p-1 bg-white"></canvas>
+                </div>
+                <p class="font-bold underline text-xs mt-1" x-text="config.namaKetua || 'Prabu Dharma'"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.2 SUB-TAB: SURAT MASUK -->
+      <div x-show="suratSubTab === 'masuk'">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm lg:col-span-1 space-y-3">
+            <h2 class="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+              <i class="fa-solid fa-inbox text-emerald-700"></i> <span x-text="formSuratMasuk.id ? 'Edit Agenda Surat Masuk' : 'Catat Surat Masuk Baru'"></span>
+            </h2>
+            <form @submit.prevent="saveSuratMasuk()" class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">No. Surat Masuk</label>
+                <input type="text" x-model="formSuratMasuk.noSurat" required placeholder="042 / UND / KLP / 2026" class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Surat</label>
+                  <input type="date" x-model="formSuratMasuk.tglSurat" required class="w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Diterima</label>
+                  <input type="date" x-model="formSuratMasuk.tglDiterima" required class="w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Penandatangan / Pejabat</label>
+                <input type="text" x-model="formSuratMasuk.penandatangan" required placeholder="Lurah Dukuh Pakis" class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Instansi / Lembaga Pengirim</label>
+                <input type="text" x-model="formSuratMasuk.instansi" required placeholder="Kelurahan Dukuh Pakis" class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Perihal / Isi Ringkas</label>
+                <textarea x-model="formSuratMasuk.perihal" rows="2" required placeholder="Undangan rapat koordinasi bulanan..." class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600"></textarea>
+              </div>
+              
+              <div class="flex gap-2">
+                <template x-if="formSuratMasuk.id">
+                  <button type="button" @click="resetFormSuratMasuk()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-2 rounded-lg text-xs font-bold transition">Batal</button>
+                </template>
+                <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-2 rounded-lg text-xs font-bold shadow transition" x-text="formSuratMasuk.id ? 'Perbarui Agenda' : 'Simpan Agenda Surat Masuk'"></button>
+              </div>
+            </form>
+          </div>
+
+          <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden lg:col-span-2 p-4">
+            <h3 class="font-bold text-slate-800 text-xs mb-3 flex items-center gap-2">
+              <i class="fa-solid fa-list text-emerald-700"></i> Daftar Agenda Surat Masuk
+            </h3>
+            <div class="overflow-x-auto">
+              <table class="print-excel-table w-full text-left text-xs">
+                <thead class="bg-slate-100 uppercase font-bold">
+                  <tr>
+                    <th class="p-1.5 text-center">No</th>
+                    <th class="p-1.5">No. Surat & Tgl</th>
+                    <th class="p-1.5">Pengirim / Instansi</th>
+                    <th class="p-1.5">Perihal</th>
+                    <th class="p-1.5 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                  <template x-for="(sm, idx) in suratMasukList" :key="sm.id">
+                    <tr>
+                      <td class="p-1.5 text-center" x-text="idx + 1"></td>
+                      <td class="p-1.5">
+                        <span class="font-bold block" x-text="sm.noSurat"></span>
+                        <span class="text-[9px] text-slate-500" x-text="'Tgl: ' + formatDate(sm.tglSurat)"></span>
+                      </td>
+                      <td class="p-1.5">
+                        <span class="font-semibold block" x-text="sm.instansi"></span>
+                        <span class="text-[9px] text-slate-500" x-text="'Oleh: ' + sm.penandatangan"></span>
+                      </td>
+                      <td class="p-1.5" x-text="sm.perihal"></td>
+                      <td class="p-1.5 text-center space-x-1">
+                        <button @click="editSuratMasuk(sm)" class="text-blue-600 hover:text-blue-800 px-1" title="Edit Surat Masuk"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button @click="deleteSuratMasuk(sm.id)" class="text-rose-600 hover:text-rose-800 px-1" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                      </td>
+                    </tr>
+                  </template>
+                  <template x-if="suratMasukList.length === 0">
+                    <tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada agenda surat masuk.</td></tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3.3 SUB-TAB: ARSIR SURAT TERPADU (DENGAN TOMBOL CETAK ARSIP) -->
+      <div x-show="suratSubTab === 'arsip'">
+        <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-sm space-y-4">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-box-archive text-emerald-700"></i> Pusat Arsip Surat Keluar (Pengantar RT)
+            </h3>
+            <span class="text-xs text-slate-500 font-medium" x-text="'Total Arsip: ' + suratKeluarArsip.length + ' Surat'"></span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="print-excel-table w-full text-left text-xs">
+              <thead class="bg-slate-100 uppercase font-bold">
+                <tr>
+                  <th class="p-2 text-center">No</th>
+                  <th class="p-2">No. Surat</th>
+                  <th class="p-2">Jenis Surat</th>
+                  <th class="p-2">Nama Warga</th>
+                  <th class="p-2">Keperluan</th>
+                  <th class="p-2 text-center">Tanggal Arsip</th>
+                  <th class="p-2 text-center no-print">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <template x-for="(ar, i) in suratKeluarArsip" :key="ar.id">
+                  <tr>
+                    <td class="p-2 text-center" x-text="i + 1"></td>
+                    <td class="p-2 font-bold text-slate-800" x-text="ar.noSurat"></td>
+                    <td class="p-2 font-semibold text-emerald-800" x-text="ar.jenis"></td>
+                    <td class="p-2" x-text="ar.nama"></td>
+                    <td class="p-2" x-text="ar.keperluan"></td>
+                    <td class="p-2 text-center" x-text="ar.tanggal"></td>
+                    <td class="p-2 text-center no-print space-x-1">
+                      <button @click="printArsipKeluar(ar)" class="text-emerald-700 hover:text-emerald-900 px-1" title="Cetak Ulang Arsip Surat"><i class="fa-solid fa-print"></i></button>
+                      <button @click="deleteArsipKeluar(ar.id)" class="text-rose-600 hover:text-rose-800 px-1" title="Hapus Arsip"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                  </tr>
+                </template>
+                <template x-if="suratKeluarArsip.length === 0">
+                  <tr><td colspan="7" class="p-4 text-center text-slate-400">Belum ada arsip surat keluar tercatat.</td></tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. TAB LAPOR RT & WARGA KOST/KONTRAK -->
+    <div x-show="activeTab === 'lapor'" x-transition>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Form Lapor Kost Lengkap -->
+        <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm no-print lg:col-span-1 space-y-3 max-h-[85vh] overflow-y-auto">
+          <h2 class="text-sm font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
+            <i class="fa-solid fa-bullhorn text-emerald-700"></i> <span x-text="formLapor.id ? 'Edit Data Laporan / Kost' : 'Buat Laporan / Datang Kost'"></span>
+          </h2>
+
+          <form @submit.prevent="saveLaporan()" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Layanan / Laporan</label>
+              <select x-model="formLapor.jenis" class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+                <option value="Lapor Datang Warga Kost / Kontrak">Lapor Datang Warga Kost / Kontrak</option>
+                <option value="Pengaduan Keamanan & Ketertiban">Pengaduan Keamanan & Ketertiban</option>
+                <option value="Pengaduan Kebersihan / Fasum">Pengaduan Kebersihan / Fasum</option>
+                <option value="Lapor Tamu / Kejadian Sosial">Lapor Tamu / Kejadian Sosial</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Pelapor (Utama)</label>
+                <input type="text" x-model="formLapor.namaPelapor" required placeholder="Nama lengkap" class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">No. Telp / WA</label>
+                <input type="text" x-model="formLapor.telepon" required placeholder="0812..." class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+            </div>
+
+            <div x-show="formLapor.jenis === 'Lapor Datang Warga Kost / Kontrak'" class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg space-y-2.5">
+              <p class="text-[11px] font-bold text-emerald-900 uppercase">Atribut Lengkap Warga Kost / Kontrak</p>
+              
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-700 mb-0.5">No. KK Asal</label>
+                  <input type="text" x-model="formLapor.noKK" placeholder="3578..." class="w-full border rounded bg-white px-2 py-1 text-xs">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-700 mb-0.5">NIK</label>
+                  <input type="text" x-model="formLapor.nik" placeholder="3578..." class="w-full border rounded bg-white px-2 py-1 text-xs">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-700 mb-0.5">Tempat Lahir</label>
+                  <input type="text" x-model="formLapor.tempatLahir" placeholder="Surabaya" class="w-full border rounded bg-white px-2 py-1 text-xs">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-700 mb-0.5">Tanggal Lahir</label>
+                  <input type="date" x-model="formLapor.tanggalLahir" class="w-full border rounded bg-white px-2 py-1 text-xs">
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-700 mb-0.5">Pekerjaan</label>
+                  <input type="text" x-model="formLapor.pekerjaan" placeholder="Mahasiswa / Karyawan" class="w-full border rounded bg-white px-2 py-1 text-xs">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-700 mb-0.5">Status Perkawinan</label>
+                  <select x-model="formLapor.statusKawin" class="w-full border rounded bg-white px-2 py-1 text-xs">
+                    <option value="Belum Kawin">Belum Kawin</option>
+                    <option value="Kawin">Kawin</option>
+                    <option value="Cerai Hidup">Cerai Hidup</option>
+                    <option value="Cerai Mati">Cerai Mati</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[10px] font-semibold text-slate-700 mb-0.5">Alamat / No. Rumah Kost (Di RT)</label>
+                <input type="text" x-model="formLapor.alamatKost" placeholder="Jl. Dukuh Pakis II No. 12" class="w-full border rounded bg-white px-2 py-1 text-xs">
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-700 mb-0.5">Penanggung Jawab Kost</label>
+                  <input type="text" x-model="formLapor.pemilikKost" placeholder="Bapak Budi" class="w-full border rounded bg-white px-2 py-1 text-xs">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-700 mb-0.5">Masa Berlaku Izin</label>
+                  <select x-model="formLapor.masaBerlaku" class="w-full border rounded bg-white px-2 py-1 text-xs">
+                    <option value="3 Bulan">3 Bulan</option>
+                    <option value="6 Bulan">6 Bulan</option>
+                    <option value="1 Tahun">1 Tahun</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- MODUL ANGGOTA KELUARGA -->
+              <div class="border-t border-emerald-200 pt-2 space-y-2">
+                <p class="text-[10px] font-bold text-emerald-900 uppercase">Anggota Keluarga (Dalam 1 KK)</p>
+                
+                <div class="space-y-1.5 bg-white p-2 rounded border">
+                  <span class="text-[10px] font-bold text-slate-700 block">Suami / Istri (Maks. 1)</span>
+                  <input type="text" x-model="formLapor.pasangan.nama" placeholder="Nama Suami/Istri" class="w-full border rounded px-1.5 py-1 text-[11px]">
+                  <div class="grid grid-cols-2 gap-1.5">
+                    <input type="text" x-model="formLapor.pasangan.nik" placeholder="NIK" class="w-full border rounded px-1.5 py-1 text-[11px]">
+                    <input type="date" x-model="formLapor.pasangan.tanggalLahir" class="w-full border rounded px-1.5 py-1 text-[11px]" title="Tanggal Lahir">
+                  </div>
+                </div>
+
+                <div class="space-y-1.5">
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-slate-700">Anak-anak</span>
+                    <button type="button" @click="formLapor.anak.push({nama: '', nik: '', tanggalLahir: ''})" class="bg-emerald-700 text-white px-2 py-0.5 rounded text-[10px]">+ Tambah Anak</button>
+                  </div>
+                  <template x-for="(ank, index) in formLapor.anak" :key="index">
+                    <div class="bg-white p-2 rounded border space-y-1 relative">
+                      <div class="flex justify-between items-center">
+                        <span class="text-[9px] font-bold text-slate-500" x-text="'Anak ke-' + (index + 1)"></span>
+                        <button type="button" @click="formLapor.anak.splice(index, 1)" class="text-rose-600 text-[10px]"><i class="fa-solid fa-trash"></i> Hapus</button>
+                      </div>
+                      <input type="text" x-model="ank.nama" placeholder="Nama Lengkap Anak" class="w-full border rounded px-1.5 py-1 text-[11px]">
+                      <div class="grid grid-cols-2 gap-1.5">
+                        <input type="text" x-model="ank.nik" placeholder="NIK Anak" class="w-full border rounded px-1.5 py-1 text-[11px]">
+                        <input type="date" x-model="ank.tanggalLahir" class="w-full border rounded px-1.5 py-1 text-[11px]" title="Tanggal Lahir Anak">
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 pt-1">
+                <input type="checkbox" id="autoDatabase" x-model="formLapor.masukDatabase" class="rounded text-emerald-700">
+                <label for="autoDatabase" class="text-[11px] font-medium text-emerald-900 cursor-pointer">Otomatis Masukkan ke Database Warga</label>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Uraian / Isi Laporan</label>
+              <textarea x-model="formLapor.uraian" rows="2" required placeholder="Tuliskan keterangan detail laporan..." class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600"></textarea>
+            </div>
+
+            <div class="flex gap-2">
+              <template x-if="formLapor.id">
+                <button type="button" @click="resetFormLapor()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 py-2 rounded-lg text-xs font-bold transition">Batal</button>
+              </template>
+              <button type="submit" class="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-2 rounded-lg text-xs font-bold shadow transition" x-text="formLapor.id ? 'Perbarui Laporan' : 'Simpan & Terbitkan Bukti Lapor'"></button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Daftar & Pratinjau Bukti Lapor -->
+        <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm lg:col-span-2 space-y-6">
+          <div class="flex justify-between items-center no-print border-b pb-3">
+            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i class="fa-solid fa-clipboard-list text-emerald-700"></i> Daftar Laporan & Bukti Lapor Warga
+            </h3>
+            <span class="text-xs text-slate-500 font-medium" x-text="'Total: ' + laporList.length + ' Laporan'"></span>
+          </div>
+
+          <div class="no-print overflow-x-auto">
+            <table class="print-excel-table w-full text-left text-xs">
+              <thead class="bg-slate-100 uppercase font-bold">
+                <tr>
+                  <th class="p-1.5 text-center">No Tiket</th>
+                  <th class="p-1.5">Pelapor</th>
+                  <th class="p-1.5">Jenis Layanan</th>
+                  <th class="p-1.5">Uraian / Keterangan</th>
+                  <th class="p-1.5 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200">
+                <template x-for="lap in laporList" :key="lap.id">
+                  <tr class="hover:bg-slate-50">
+                    <td class="p-1.5 font-bold text-emerald-800 text-center" x-text="lap.tiket"></td>
+                    <td class="p-1.5">
+                      <span class="font-semibold block" x-text="lap.namaPelapor"></span>
+                      <span class="text-[9px] text-slate-500" x-text="lap.telepon"></span>
+                    </td>
+                    <td class="p-1.5 font-medium" x-text="lap.jenis"></td>
+                    <td class="p-1.5 text-slate-700" x-text="lap.uraian"></td>
+                    <td class="p-1.5 text-center space-x-1">
+                      <button @click="printBuktiLapor(lap)" class="text-emerald-700 hover:text-emerald-900 px-1" title="Cetak Bukti Lapor"><i class="fa-solid fa-print"></i></button>
+                      <button @click="editLapor(lap)" class="text-blue-600 hover:text-blue-800 px-1" title="Edit Laporan"><i class="fa-solid fa-pen-to-square"></i></button>
+                      <button @click="deleteLapor(lap.id)" class="text-rose-600 hover:text-rose-800 px-1" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                  </tr>
+                </template>
+                <template x-if="laporList.length === 0">
+                  <tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada data laporan atau datang kost.</td></tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- PRATINJAU DOKUMEN BUKTI LAPOR RESMI (1 HALAMAN PAS) -->
+          <div id="printAreaBuktiLapor" class="print-only p-2 border border-dashed border-slate-400 rounded-lg">
+            <div class="text-center uppercase font-bold tracking-wide border-b-2 border-black pb-1.5 mb-1.5">
+              <h2 class="text-sm">RUKUN TETANGGA <span x-text="config.rt"></span> / RUKUN WARGA <span x-text="config.rw"></span></h2>
+              <h3 class="text-xs">KELURAHAN <span x-text="config.kelurahan"></span>, KECAMATAN <span x-text="config.kecamatan"></span></h3>
+              <p class="text-[8px] font-normal lowercase capitalize mt-0.5 text-gray-600">Alamat Balai: <span x-text="config.alamatBalai"></span> | Telp/WA: <span x-text="config.waKetua"></span></p>
+            </div>
+
+            <div class="text-center my-1">
+              <h3 class="font-bold text-xs uppercase underline tracking-wider">SURAT BUKTI LAPOR / PENDATAAN WARGA KONTRAK / KOST</h3>
+              <p class="text-[9px] text-slate-600">Nomor Tiket: <span class="font-bold text-black" x-text="selectedLapor.tiket || 'LAPOR-...' "></span></p>
+            </div>
+
+            <div class="text-[9.5px] space-y-1.5 leading-tight text-slate-900">
+              <p>Diterangkan dengan sebenarnya bahwa pengurus RT <span x-text="config.rt"></span> / RW <span x-text="config.rw"></span> telah menerima pendataan resmi warga pendatang dengan rincian identitas sebagai berikut:</p>
+
+              <table class="w-full space-y-0.5 text-[9.5px]">
+                <tr>
+                  <td class="w-36 font-semibold py-0.5">Jenis Layanan</td>
+                  <td class="py-0.5">: <span class="font-bold uppercase" x-text="selectedLapor.jenis || '-'"></span></td>
+                </tr>
+                <tr>
+                  <td class="font-semibold py-0.5">Nama Pelapor (Utama)</td>
+                  <td class="py-0.5">: <span class="font-bold uppercase" x-text="selectedLapor.namaPelapor || '-'"></span></td>
+                </tr>
+                <tr>
+                  <td class="font-semibold py-0.5">No. Telp / WhatsApp</td>
+                  <td class="py-0.5">: <span x-text="selectedLapor.telepon || '-'"></span></td>
+                </tr>
+                
+                <template x-if="selectedLapor.jenis === 'Lapor Datang Warga Kost / Kontrak'">
+                  <>
+                    <tr>
+                      <td class="font-semibold py-0.5">NIK / No. KK</td>
+                      <td class="py-0.5">: <span x-text="(selectedLapor.nik || '-') + ' / ' + (selectedLapor.noKK || '-')"></span></td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold py-0.5">Tempat / Tgl Lahir (Usia)</td>
+                      <td class="py-0.5">: <span x-text="(selectedLapor.tempatLahir || 'Belum Tertera') + ', ' + formatDate(selectedLapor.tanggalLahir) + ' (' + calculateAge(selectedLapor.tanggalLahir) + ' thn)'"></span></td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold py-0.5">Pekerjaan / Perkawinan</td>
+                      <td class="py-0.5">: <span x-text="(selectedLapor.pekerjaan || '-') + ' / ' + (selectedLapor.statusKawin || '-')"></span></td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold py-0.5">Alamat Kost / Kontrak</td>
+                      <td class="py-0.5">: <span class="font-bold" x-text="selectedLapor.alamatKost || '-'"></span></td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold py-0.5">Penanggung Jawab Kost</td>
+                      <td class="py-0.5">: <span x-text="selectedLapor.pemilikKost || '-'"></span></td>
+                    </tr>
+                    <tr>
+                      <td class="font-semibold py-0.5">Masa Berlaku Izin</td>
+                      <td class="py-0.5 font-bold text-emerald-800">: <span x-text="selectedLapor.masaBerlaku || '-'"></span></td>
+                    </tr>
+
+                    <tr>
+                      <td class="font-semibold py-0.5 align-top">Rincian Anggota Keluarga</td>
+                      <td class="py-0.5">
+                        <table class="print-excel-table w-full text-[8.5px] mt-0.5">
+                          <thead>
+                            <tr class="bg-slate-100">
+                              <th class="p-0.5">No</th>
+                              <th class="p-0.5">Hubungan</th>
+                              <th class="p-0.5">Nama Lengkap</th>
+                              <th class="p-0.5">NIK</th>
+                              <th class="p-0.5">Tgl Lahir / Usia</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <template x-if="selectedLapor.pasangan && selectedLapor.pasangan.nama">
+                              <tr>
+                                <td class="p-0.5 text-center">1</td>
+                                <td class="p-0.5 font-semibold">Suami / Istri</td>
+                                <td class="p-0.5 font-bold" x-text="selectedLapor.pasangan.nama"></td>
+                                <td class="p-0.5" x-text="selectedLapor.pasangan.nik || '-'"></td>
+                                <td class="p-0.5" x-text="formatDate(selectedLapor.pasangan.tanggalLahir) + ' (' + calculateAge(selectedLapor.pasangan.tanggalLahir) + ' thn)'"></td>
+                              </tr>
+                            </template>
+                            <template x-for="(ak, i) in selectedLapor.anak" :key="i">
+                              <tr>
+                                <td class="p-0.5 text-center" x-text="(selectedLapor.pasangan && selectedLapor.pasangan.nama ? 2 : 1) + i"></td>
+                                <td class="p-0.5 font-semibold" x-text="'Anak ke-' + (i+1)"></td>
+                                <td class="p-0.5 font-bold" x-text="ak.nama"></td>
+                                <td class="p-0.5" x-text="ak.nik || '-'"></td>
+                                <td class="p-0.5" x-text="formatDate(ak.tanggalLahir) + ' (' + calculateAge(ak.tanggalLahir) + ' thn)'"></td>
+                              </tr>
+                            </template>
+                            <template x-if="(!selectedLapor.pasangan || !selectedLapor.pasangan.nama) && (!selectedLapor.anak || selectedLapor.anak.length === 0)">
+                              <tr>
+                                <td colspan="5" class="p-0.5 text-center text-slate-500">- Tidak ada anggota keluarga dalam 1 KK -</td>
+                              </tr>
+                            </template>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </>
+                </template>
+
+                <tr>
+                  <td class="font-semibold py-0.5 align-top">Uraian / Keterangan</td>
+                  <td class="py-0.5">: <span x-text="selectedLapor.uraian || '-'"></span></td>
+                </tr>
+              </table>
+
+              <p class="pt-0.5">Surat bukti lapor ini diterbitkan resmi sebagai bukti ketaatan administrasi warga di wilayah RT <span x-text="config.rt"></span>.</p>
+            </div>
+
+            <div class="mt-2 pt-1 flex justify-between items-end">
+              <div class="text-[7.5px] text-slate-500">
+                <p>Catatan:</p>
+                <p>Scan QR Code untuk konfirmasi & validasi</p>
+                <p>keabsahan dokumen melalui WhatsApp Ketua RT.</p>
+              </div>
+
+              <div class="text-center w-40">
+                <p class="text-[8.5px] mb-0.5" x-text="(config.kota || 'Surabaya') + ', ' + getCurrentDate()"></p>
+                <p class="font-bold text-[9px] mb-0.5">KETUA RT <span x-text="config.rt"></span> / RW <span x-text="config.rw"></span></p>
+                <div class="flex justify-center my-0.5">
+                  <canvas id="qrCanvasLapor" class="w-14 h-14 border p-0.5 bg-white"></canvas>
+                </div>
+                <p class="font-bold underline text-[9px] mt-0.5" x-text="config.namaKetua || 'Prabu Dharma'"></p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. TAB PENGATURAN WILAYAH -->
+    <div x-show="activeTab === 'pengaturan'" x-transition class="no-print">
+      <div class="max-w-xl mx-auto space-y-6">
+        
+        <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+          <h2 class="text-md font-bold text-slate-800 border-b pb-2 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-gear text-emerald-700"></i> Pengaturan Identitas Wilayah RT
+          </h2>
+
+          <form @submit.prevent="saveConfig()" class="space-y-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Ketua RT</label>
+              <input type="text" x-model="config.namaKetua" placeholder="Prabu Dharma" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor RT</label>
+                <input type="text" x-model="config.rt" placeholder="05" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Nomor RW</label>
+                <input type="text" x-model="config.rw" placeholder="02" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Kelurahan</label>
+                <input type="text" x-model="config.kelurahan" placeholder="Dukuh Pakis" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Kecamatan</label>
+                <input type="text" x-model="config.kecamatan" placeholder="Dukuh Pakis" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Kota / Kabupaten</label>
+                <input type="text" x-model="config.kota" placeholder="Surabaya" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Provinsi</label>
+                <input type="text" x-model="config.provinsi" placeholder="Jawa Timur" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">No. WA Ketua RT (Format: 628...)</label>
+              <input type="text" x-model="config.waKetua" placeholder="6281234567890" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Alamat Balai RT / Sekretariat</label>
+              <input type="text" x-model="config.alamatBalai" placeholder="Jl. Dukuh Pakis No. XX" class="w-full border rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+
+            <div class="pt-3 border-t flex justify-end">
+              <button type="submit" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-1.5 rounded-lg text-xs font-semibold transition">
+                Simpan Pengaturan
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+          <h2 class="text-md font-bold text-slate-800 border-b pb-2 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-database text-emerald-700"></i> Backup & Restore Database Lokal (JSON)
+          </h2>
+          <p class="text-xs text-slate-500 mb-4">Amankan seluruh data warga, arsip surat, laporan, dan konfigurasi RT Anda ke dalam file cadangan `.json`.</p>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button @click="backupDatabase()" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white py-2.5 rounded-lg text-xs font-semibold shadow flex items-center justify-center gap-2 transition">
+              <i class="fa-solid fa-download"></i> Download Backup (.json)
+            </button>
+            <label class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2.5 rounded-lg text-xs font-semibold shadow flex items-center justify-center gap-2 cursor-pointer transition">
+              <i class="fa-solid fa-upload"></i> Restore Database (.json)
+              <input type="file" accept=".json" @change="restoreDatabase($event)" class="hidden">
+            </label>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODAL FORM INPUT DATA WARGA -->
+    <div x-show="isModalOpen" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-3 no-print" x-transition>
+      <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-5 max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center border-b pb-2 mb-3">
+          <h3 class="font-bold text-slate-800 text-sm" x-text="form.id ? 'Edit Data Warga' : 'Tambah Warga Baru'"></h3>
+          <button @click="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+
+        <form @submit.prevent="saveWarga()" class="space-y-3">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">No. Kartu Keluarga (KK)</label>
+              <input type="text" x-model="form.noKK" required placeholder="3578..." class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">NIK</label>
+              <input type="text" x-model="form.nik" required placeholder="3578..." class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap</label>
+            <input type="text" x-model="form.nama" required placeholder="Nama lengkap sesuai KTP" class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Alamat / No. Rumah</label>
+            <input type="text" x-model="form.alamat" required placeholder="Jl. Dukuh Pakis V / No. 10" class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Kelamin</label>
+              <select x-model="form.gender" required class="w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+                <option value="Laki-laki">Laki-laki</option>
+                <option value="Perempuan">Perempuan</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Tempat Lahir</label>
+              <input type="text" x-model="form.tempatLahir" required placeholder="Surabaya" class="w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Lahir</label>
+              <input type="date" x-model="form.tanggalLahir" required class="w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Status Perkawinan</label>
+              <select x-model="form.statusKawin" required class="w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+                <option value="Belum Kawin">Belum Kawin</option>
+                <option value="Kawin">Kawin</option>
+                <option value="Cerai Hidup">Cerai Hidup</option>
+                <option value="Cerai Mati">Cerai Mati</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">No. Telp / WhatsApp</label>
+              <input type="text" x-model="form.telepon" placeholder="0812..." class="w-full border rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Status Hunian</label>
+              <select x-model="form.statusHunian" required class="w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+                <option value="Tetap">Tetap</option>
+                <option value="Kontrak">Kontrak</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Pekerjaan</label>
+              <input type="text" x-model="form.pekerjaan" placeholder="Swasta / PNS / dll" class="w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Klaster Ekonomi (Ringkas)</label>
+            <select x-model="form.desil" required class="w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 focus:ring-emerald-600">
+              <template x-for="d in desilCategories" :key="d">
+                <option :value="d" x-text="d"></option>
+              </template>
+            </select>
+          </div>
+
+          <div class="pt-3 border-t flex justify-end gap-2">
+            <button type="button" @click="closeModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200">Batal</button>
+            <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-700 hover:bg-emerald-800 text-white">Simpan Data</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER RESMI APLIKASI -->
+  <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 text-[11px] py-3 no-print mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-1.5">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-amber-400">SURABAYA RUMAH PAHLAWAN</span>
+        <span>&bull;</span>
+        <span class="text-slate-300">@adzendin</span>
+      </div>
+      <div>
+        <span>Versi Aplikasi: <strong class="text-white">v1.3.3</strong></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SCRIPT LOGIKA ALPINE.JS -->
+  <script>
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('rtApp', () => ({
+        activeTab: 'dashboard',
+        suratSubTab: 'keluar',
+        isModalOpen: false,
+        searchQuery: '',
+        filterHunian: '',
+        filterAgeGroup: '',
+        filterEkonomi: '',
+        filterGender: '',
+
+        suratSearchQuery: '',
+        showWargaDropdown: false,
+
+        config: {
+          namaKetua: 'Prabu Dharma',
+          rt: '05',
+          rw: '02',
+          kelurahan: 'Dukuh Pakis',
+          kecamatan: 'Dukuh Pakis',
+          kota: 'Surabaya',
+          provinsi: 'Jawa Timur',
+          waKetua: '6281234567890',
+          alamatBalai: 'Jl. Dukuh Pakis No. XX'
+        },
+
+        surat: {
+          jenis: 'Surat Keterangan Domisili',
+          selectedWargaId: '',
+          noSurat: '001 / SK-RT05 / IV / 2026',
+          keperluan: 'Pengurusan administrasi kependudukan',
+          nama: '',
+          nik: '',
+          noKK: '',
+          gender: '',
+          tempatLahir: '',
+          tanggalLahir: '',
+          statusKawin: '',
+          pekerjaan: '',
+          alamat: ''
+        },
+
+        formSuratMasuk: {
+          id: null,
+          noSurat: '',
+          tglSurat: '',
+          tglDiterima: '',
+          penandatangan: '',
+          instansi: '',
+          perihal: ''
+        },
+
+        formLapor: {
+          id: null,
+          jenis: 'Lapor Datang Warga Kost / Kontrak',
+          namaPelapor: '',
+          telepon: '',
+          uraian: '',
+          noKK: '',
+          nik: '',
+          tempatLahir: '',
+          tanggalLahir: '',
+          pekerjaan: '',
+          statusKawin: 'Belum Kawin',
+          alamatKost: '',
+          masaBerlaku: '6 Bulan',
+          pemilikKost: '',
+          pasangan: { nama: '', nik: '', tanggalLahir: '' },
+          anak: [],
+          masukDatabase: true
+        },
+
+        selectedLapor: {},
+
+        ageCategories: [
+          'Balita (0-5 thn)',
+          'Anak-anak (6-11 thn)',
+          'Remaja (12-25 thn)',
+          'Dewasa / Usia Produktif (26-59 thn)',
+          'Lansia (60+ thn)'
+        ],
+
+        desilCategories: [
+          'Desil 1',
+          'Desil 2',
+          'Desil 3',
+          'Desil 4',
+          'Desil 5',
+          'Desil 6',
+          'Desil 7',
+          'Desil 8',
+          'Desil 9',
+          'Desil 10',
+          'Belum Terdata'
+        ],
+
+        wargaList: [],
+        suratMasukList: [],
+        suratKeluarArsip: [],
+        laporList: [],
+
+        form: {
+          id: null,
+          noKK: '',
+          nik: '',
+          nama: '',
+          alamat: '',
+          gender: 'Laki-laki',
+          tempatLahir: '',
+          tanggalLahir: '',
+          statusKawin: 'Belum Kawin',
+          telepon: '',
+          statusHunian: 'Tetap',
+          pekerjaan: '',
+          desil: 'Belum Terdata'
+        },
+
+        init() {
+          const savedConfig = localStorage.getItem('SRP_RT_CONFIG_V133');
+          if (savedConfig) this.config = JSON.parse(savedConfig);
+
+          const savedWarga = localStorage.getItem('SRP_RT_WARGA_V133');
+          if (savedWarga) {
+            this.wargaList = JSON.parse(savedWarga);
+          } else {
+            this.wargaList = [
+              { id: 1, noKK: '3578011200000001', nik: '3578011205800001', nama: 'Prabu Dharma', alamat: 'Jl. Dukuh Pakis I / No. 5', gender: 'Laki-laki', tempatLahir: 'Surabaya', tanggalLahir: '1980-05-12', statusKawin: 'Kawin', telepon: '081234567890', statusHunian: 'Tetap', pekerjaan: 'PNS', desil: 'Desil 8' },
+              { id: 2, noKK: '3578011200000002', nik: '3578011208920002', nama: 'Siti Aminah', alamat: 'Jl. Dukuh Pakis II / No. 12', gender: 'Perempuan', tempatLahir: 'Sidoarjo', tanggalLahir: '1992-08-15', statusKawin: 'Kawin', telepon: '081987654321', statusHunian: 'Tetap', pekerjaan: 'Wiraswasta', desil: 'Desil 5' }
+            ];
+            this.saveToStorage();
+          }
+
+          const savedSM = localStorage.getItem('SRP_RT_SURAT_MASUK_V133');
+          if (savedSM) this.suratMasukList = JSON.parse(savedSM);
+
+          const savedSK = localStorage.getItem('SRP_RT_SURAT_KELUAR_V133');
+          if (savedSK) this.suratKeluarArsip = JSON.parse(savedSK);
+
+          const savedLapor = localStorage.getItem('SRP_RT_LAPOR_V133');
+          if (savedLapor) {
+            this.laporList = JSON.parse(savedLapor);
+            if (this.laporList.length > 0) this.selectedLapor = this.laporList[0];
+          }
+
+          this.$watch('config', () => this.generateQRCodes(), { deep: true });
+          this.$watch('surat', () => this.generateQRCodes(), { deep: true });
+          this.$watch('selectedLapor', () => this.generateQRCodes(), { deep: true });
+          this.$watch('activeTab', () => setTimeout(() => this.generateQRCodes(), 200));
+          setTimeout(() => this.generateQRCodes(), 500);
+        },
+
+        saveToStorage() {
+          localStorage.setItem('SRP_RT_WARGA_V133', JSON.stringify(this.wargaList));
+        },
+
+        saveConfig() {
+          localStorage.setItem('SRP_RT_CONFIG_V133', JSON.stringify(this.config));
+          alert('Pengaturan identitas wilayah berhasil disimpan!');
+          this.generateQRCodes();
+        },
+
+        calculateAge(dateString) {
+          if (!dateString) return 0;
+          const today = new Date();
+          const birthDate = new Date(dateString);
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const m = today.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
+          return age < 0 ? 0 : age;
+        },
+
+        getAgeCategory(age) {
+          if (age <= 5) return 'Balita (0-5 thn)';
+          if (age <= 11) return 'Anak-anak (6-11 thn)';
+          if (age <= 25) return 'Remaja (12-25 thn)';
+          if (age <= 59) return 'Dewasa / Usia Produktif (26-59 thn)';
+          return 'Lansia (60+ thn)';
+        },
+
+        get filteredWarga() {
+          return this.wargaList.filter(w => {
+            const matchesSearch = w.nama.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                                  w.nik.includes(this.searchQuery) ||
+                                  w.noKK.includes(this.searchQuery);
+            const matchesHunian = this.filterHunian === '' || w.statusHunian === this.filterHunian;
+            const age = this.calculateAge(w.tanggalLahir);
+            const matchesAgeGroup = this.filterAgeGroup === '' || this.getAgeCategory(age) === this.filterAgeGroup;
+            const matchesEkonomi = this.filterEkonomi === '' || w.desil === this.filterEkonomi;
+            const matchesGender = this.filterGender === '' || w.gender === this.filterGender;
+
+            return matchesSearch && matchesHunian && matchesAgeGroup && matchesEkonomi && matchesGender;
+          });
+        },
+
+        get filteredWargaForSurat() {
+          if (!this.suratSearchQuery) return this.wargaList;
+          return this.wargaList.filter(w => w.nama.toLowerCase().includes(this.suratSearchQuery.toLowerCase()) || w.nik.includes(this.suratSearchQuery));
+        },
+
+        selectWargaForSurat(w) {
+          this.surat.selectedWargaId = w.id;
+          this.suratSearchQuery = w.nama;
+          this.showWargaDropdown = false;
+          this.surat.nama = w.nama;
+          this.surat.nik = w.nik;
+          this.surat.noKK = w.noKK;
+          this.surat.gender = w.gender;
+          this.surat.tempatLahir = w.tempatLahir || 'Belum Tertera';
+          this.surat.tanggalLahir = w.tanggalLahir;
+          this.surat.statusKawin = w.statusKawin;
+          this.surat.pekerjaan = w.pekerjaan;
+          this.surat.alamat = w.alamat;
+        },
+
+        getGenderCount(gender) {
+          return this.wargaList.filter(w => w.gender === gender).length;
+        },
+
+        getHunianCount(type) {
+          return this.wargaList.filter(w => w.statusHunian === type).length;
+        },
+
+        getKawinCount(status) {
+          return this.wargaList.filter(w => (w.statusKawin || 'Belum Kawin') === status).length;
+        },
+
+        getAgeGroupCount(category) {
+          return this.wargaList.filter(w => this.getAgeCategory(this.calculateAge(w.tanggalLahir)) === category).length;
+        },
+
+        getDesilCount(desil) {
+          return this.wargaList.filter(w => w.desil === desil).length;
+        },
+
+        getPercentage(count) {
+          if (this.wargaList.length === 0) return 0;
+          return Math.round((count / this.wargaList.length) * 100);
+        },
+
+        formatDate(dateStr) {
+          if (!dateStr) return '-';
+          const parts = dateStr.split('-');
+          return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        },
+
+        getCurrentDate() {
+          const now = new Date();
+          const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+          return `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+        },
+
+        openModal() {
+          this.form = {
+            id: null,
+            noKK: '',
+            nik: '',
+            nama: '',
+            alamat: '',
+            gender: 'Laki-laki',
+            tempatLahir: '',
+            tanggalLahir: '',
+            statusKawin: 'Belum Kawin',
+            telepon: '',
+            statusHunian: 'Tetap',
+            pekerjaan: '',
+            desil: 'Belum Terdata'
+          };
+          this.isModalOpen = true;
+        },
+
+        closeModal() {
+          this.isModalOpen = false;
+        },
+
+        editWarga(warga) {
+          this.form = JSON.parse(JSON.stringify(warga));
+          this.isModalOpen = true;
+        },
+
+        saveWarga() {
+          if (this.form.id) {
+            const index = this.wargaList.findIndex(w => w.id === this.form.id);
+            if (index !== -1) this.wargaList[index] = { ...this.form };
+          } else {
+            this.form.id = Date.now();
+            this.wargaList.push({ ...this.form });
+          }
+          this.saveToStorage();
+          this.closeModal();
+        },
+
+        deleteWarga(id) {
+          if (confirm('Apakah Anda yakin ingin menghapus data warga ini?')) {
+            this.wargaList = this.wargaList.filter(w => w.id !== id);
+            this.saveToStorage();
+          }
+        },
+
+        printAndSaveSuratKeluar() {
+          if (!this.surat.selectedWargaId) {
+            alert('Silakan pilih warga terlebih dahulu menggunakan pencarian nama!');
+            return;
+          }
+          const arsipItem = {
+            id: Date.now(),
+            noSurat: this.surat.noSurat,
+            jenis: this.surat.jenis,
+            nama: this.surat.nama,
+            keperluan: this.surat.keperluan,
+            tanggal: this.getCurrentDate()
+          };
+          this.suratKeluarArsip.unshift(arsipItem);
+          localStorage.setItem('SRP_RT_SURAT_KELUAR_V133', JSON.stringify(this.suratKeluarArsip));
+          window.print();
+        },
+
+        printArsipKeluar(ar) {
+          this.surat.jenis = ar.jenis;
+          this.surat.noSurat = ar.noSurat;
+          this.surat.nama = ar.nama;
+          this.surat.keperluan = ar.keperluan;
+          const found = this.wargaList.find(w => w.nama.toLowerCase() === ar.nama.toLowerCase());
+          if (found) {
+            this.surat.nik = found.nik;
+            this.surat.noKK = found.noKK;
+            this.surat.gender = found.gender;
+            this.surat.tempatLahir = found.tempatLahir;
+            this.surat.tanggalLahir = found.tanggalLahir;
+            this.surat.statusKawin = found.statusKawin;
+            this.surat.pekerjaan = found.pekerjaan;
+            this.surat.alamat = found.alamat;
+          }
+          setTimeout(() => {
+            window.print();
+          }, 300);
+        },
+
+        saveSuratMasuk() {
+          if (this.formSuratMasuk.id) {
+            const idx = this.suratMasukList.findIndex(s => s.id === this.formSuratMasuk.id);
+            if (idx !== -1) this.suratMasukList[idx] = { ...this.formSuratMasuk };
+          } else {
+            const item = { id: Date.now(), ...this.formSuratMasuk };
+            this.suratMasukList.unshift(item);
+          }
+          localStorage.setItem('SRP_RT_SURAT_MASUK_V133', JSON.stringify(this.suratMasukList));
+          this.resetFormSuratMasuk();
+          alert('Agenda surat masuk berhasil disimpan!');
+        },
+
+        editSuratMasuk(sm) {
+          this.formSuratMasuk = JSON.parse(JSON.stringify(sm));
+        },
+
+        resetFormSuratMasuk() {
+          this.formSuratMasuk = { id: null, noSurat: '', tglSurat: '', tglDiterima: '', penandatangan: '', instansi: '', perihal: '' };
+        },
+
+        deleteSuratMasuk(id) {
+          if (confirm('Hapus agenda surat masuk ini?')) {
+            this.suratMasukList = this.suratMasukList.filter(s => s.id !== id);
+            localStorage.setItem('SRP_RT_SURAT_MASUK_V133', JSON.stringify(this.suratMasukList));
+          }
+        },
+
+        deleteArsipKeluar(id) {
+          if (confirm('Hapus arsip surat keluar ini?')) {
+            this.suratKeluarArsip = this.suratKeluarArsip.filter(a => a.id !== id);
+            localStorage.setItem('SRP_RT_SURAT_KELUAR_V133', JSON.stringify(this.suratKeluarArsip));
+          }
+        },
+
+        saveLaporan() {
+          if (this.formLapor.id) {
+            const index = this.laporList.findIndex(l => l.id === this.formLapor.id);
+            if (index !== -1) {
+              this.laporList[index] = JSON.parse(JSON.stringify(this.formLapor));
+              this.selectedLapor = this.laporList[index];
+            }
+          } else {
+            const tiketNum = 'LAPOR-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900);
+            const newLapor = {
+              id: Date.now(),
+              tiket: tiketNum,
+              ...JSON.parse(JSON.stringify(this.formLapor)),
+              tanggal: this.getCurrentDate()
+            };
+
+            this.laporList.unshift(newLapor);
+            this.selectedLapor = newLapor;
+
+            if (newLapor.jenis === 'Lapor Datang Warga Kost / Kontrak' && newLapor.masukDatabase) {
+              const newWargaKost = {
+                id: Date.now() + 1,
+                noKK: newLapor.noKK || '-',
+                nik: newLapor.nik || '3578000000000000',
+                nama: newLapor.namaPelapor,
+                alamat: newLapor.alamatKost || 'Kost / Kontrak',
+                gender: 'Laki-laki',
+                tempatLahir: newLapor.tempatLahir || 'Belum Tertera',
+                tanggalLahir: newLapor.tanggalLahir || '2000-01-01',
+                statusKawin: newLapor.statusKawin,
+                telepon: newLapor.telepon,
+                statusHunian: 'Kontrak',
+                pekerjaan: (newLapor.pekerjaan || 'Pendatang') + ' (PJ Kost: ' + newLapor.pemilikKost + ')',
+                desil: 'Belum Terdata'
+              };
+              this.wargaList.push(newWargaKost);
+
+              if (newLapor.pasangan && newLapor.pasangan.nama) {
+                this.wargaList.push({
+                  id: Date.now() + 2,
+                  noKK: newLapor.noKK || '-',
+                  nik: newLapor.pasangan.nik || '3578000000000000',
+                  nama: newLapor.pasangan.nama,
+                  alamat: newLapor.alamatKost || 'Kost / Kontrak',
+                  gender: 'Perempuan',
+                  tempatLahir: 'Belum Tertera',
+                  tanggalLahir: newLapor.pasangan.tanggalLahir || '2000-01-01',
+                  statusKawin: 'Kawin',
+                  telepon: newLapor.telepon,
+                  statusHunian: 'Kontrak',
+                  pekerjaan: 'Mengurus Rumah Tangga',
+                  desil: 'Belum Terdata'
+                });
+              }
+
+              if (newLapor.anak && newLapor.anak.length > 0) {
+                newLapor.anak.forEach((ank, idx) => {
+                  if (ank.nama) {
+                    this.wargaList.push({
+                      id: Date.now() + 10 + idx,
+                      noKK: newLapor.noKK || '-',
+                      nik: ank.nik || '3578000000000000',
+                      nama: ank.nama,
+                      alamat: newLapor.alamatKost || 'Kost / Kontrak',
+                      gender: 'Laki-laki',
+                      tempatLahir: 'Belum Tertera',
+                      tanggalLahir: ank.tanggalLahir || '2015-01-01',
+                      statusKawin: 'Belum Kawin',
+                      telepon: '-',
+                      statusHunian: 'Kontrak',
+                      pekerjaan: 'Pelajar / Anak',
+                      desil: 'Belum Terdata'
+                    });
+                  }
+                });
+              }
+              this.saveToStorage();
+            }
+          }
+
+          localStorage.setItem('SRP_RT_LAPOR_V133', JSON.stringify(this.laporList));
+          this.resetFormLapor();
+          alert('Laporan berhasil disimpan!');
+        },
+
+        editLapor(lap) {
+          this.formLapor = JSON.parse(JSON.stringify(lap));
+        },
+
+        resetFormLapor() {
+          this.formLapor = {
+            id: null,
+            jenis: 'Lapor Datang Warga Kost / Kontrak',
+            namaPelapor: '',
+            telepon: '',
+            uraian: '',
+            noKK: '',
+            nik: '',
+            tempatLahir: '',
+            tanggalLahir: '',
+            pekerjaan: '',
+            statusKawin: 'Belum Kawin',
+            alamatKost: '',
+            masaBerlaku: '6 Bulan',
+            pemilikKost: '',
+            pasangan: { nama: '', nik: '', tanggalLahir: '' },
+            anak: [],
+            masukDatabase: true
+          };
+        },
+
+        printBuktiLapor(lap) {
+          this.selectedLapor = lap;
+          setTimeout(() => {
+            window.print();
+          }, 300);
+        },
+
+        deleteLapor(id) {
+          if (confirm('Hapus laporan ini?')) {
+            this.laporList = this.laporList.filter(l => l.id !== id);
+            localStorage.setItem('SRP_RT_LAPOR_V133', JSON.stringify(this.laporList));
+            if (this.laporList.length > 0) this.selectedLapor = this.laporList[0];
+            else this.selectedLapor = {};
+          }
+        },
+
+        exportCSV() {
+          let csv = 'NO,KK,NIK,NAMA,L/P,Tempat Lahir,Tanggal Lahir,Alamat,Umur,Perkawinan,No Tlp,Hunian,Klaster Ekonomi\n';
+          this.wargaList.forEach((w, index) => {
+            const age = this.calculateAge(w.tanggalLahir);
+            const g = w.gender === 'Laki-laki' ? 'L' : 'P';
+            csv += `"${index + 1}","'${w.noKK}","'${w.nik}","${w.nama}","${g}","${w.tempatLahir || 'Belum Tertera'}","${w.tanggalLahir}","${w.alamat || '-'}","${age}","${w.statusKawin || '-'}","'${w.telepon || '-'}","${w.statusHunian}","${w.desil}"\n`;
+          });
+
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.setAttribute('download', `Data_Warga_RT${this.config.rt}_RW${this.config.rw}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        },
+
+        backupDatabase() {
+          const backupData = {
+            config: this.config,
+            wargaList: this.wargaList,
+            suratMasukList: this.suratMasukList,
+            suratKeluarArsip: this.suratKeluarArsip,
+            laporList: this.laporList,
+            version: 'v1.3.3',
+            date: new Date().toISOString()
+          };
+          const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.setAttribute('download', `Backup_RT_${this.config.rt}_RW${this.config.rw}_v1.3.3.json`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        },
+
+        restoreDatabase(event) {
+          const file = event.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = JSON.parse(e.target.result);
+              if (data.wargaList && data.config) {
+                if (confirm(`Pulihkan database dari file cadangan? (${data.wargaList.length} data warga ditemukan)`)) {
+                  this.wargaList = data.wargaList;
+                  this.config = data.config;
+                  if (data.suratMasukList) this.suratMasukList = data.suratMasukList;
+                  if (data.suratKeluarArsip) this.suratKeluarArsip = data.suratKeluarArsip;
+                  if (data.laporList) this.laporList = data.laporList;
+                  this.saveToStorage();
+                  localStorage.setItem('SRP_RT_CONFIG_V133', JSON.stringify(this.config));
+                  localStorage.setItem('SRP_RT_SURAT_MASUK_V133', JSON.stringify(this.suratMasukList));
+                  localStorage.setItem('SRP_RT_SURAT_KELUAR_V133', JSON.stringify(this.suratKeluarArsip));
+                  localStorage.setItem('SRP_RT_LAPOR_V133', JSON.stringify(this.laporList));
+                  alert('Database berhasil dipulihkan!');
+                }
+              } else {
+                alert('Format file cadangan tidak valid!');
+              }
+            } catch (err) {
+              alert('Gagal membaca file JSON!');
+            }
+          };
+          reader.readAsText(file);
+        },
+
+        generateQRCodes() {
+          let rawWa = (this.config.waKetua || '6281234567890').replace(/[^0-9]/g, '');
+          if (rawWa.startsWith('0')) {
+            rawWa = '62' + rawWa.substring(1);
+          } else if (!rawWa.startsWith('62')) {
+            rawWa = '62' + rawWa;
+          }
+          const waNum = rawWa;
+          
+          const msgReport = `Salam Hormat Ketua RT ${this.config.namaKetua}, mohon konfirmasi dan validasi keabsahan laporan data warga resmi RT ${this.config.rt}/RW ${this.config.rw}.`;
+          const urlReport = `https://wa.me/${waNum}?text=${encodeURIComponent(msgReport)}`;
+
+          ['qrCanvasDashboard', 'qrCanvasWarga'].forEach(id => {
+            const canvas = document.getElementById(id);
+            if (canvas) {
+              new QRious({ element: canvas, value: urlReport, size: 100 });
+            }
+          });
+
+          const namaWargaSurat = this.surat.nama || 'Warga';
+          const jenisSurat = this.surat.jenis || 'Surat Pengantar';
+          const msgSurat = `Salam Hormat Ketua RT ${this.config.namaKetua}, mohon konfirmasi dan validasi keabsahan Surat Pengantar / Keterangan atas nama ${namaWargaSurat} untuk keperluan ${jenisSurat}.`;
+          const urlSurat = `https://wa.me/${waNum}?text=${encodeURIComponent(msgSurat)}`;
+
+          const canvasSurat = document.getElementById('qrCanvasSurat');
+          if (canvasSurat) {
+            new QRious({ element: canvasSurat, value: urlSurat, size: 100 });
+          }
+
+          const tiketLapor = this.selectedLapor.tiket || 'LAPOR';
+          const namaPelapor = this.selectedLapor.namaPelapor || 'Warga';
+          const msgLapor = `Salam Hormat Ketua RT ${this.config.namaKetua}, mohon konfirmasi dan validasi keabsahan Bukti Lapor / Pendataan dengan nomor tiket ${tiketLapor} atas nama ${namaPelapor}.`;
+          const urlLapor = `https://wa.me/${waNum}?text=${encodeURIComponent(msgLapor)}`;
+
+          const canvasLapor = document.getElementById('qrCanvasLapor');
+          if (canvasLapor) {
+            new QRious({ element: canvasLapor, value: urlLapor, size: 100 });
+          }
+        }
+      }));
+    });
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('SW registered - RT TERPADU PWA:', reg.scope))
+          .catch(err => console.log('SW fail:', err));
+      });
+    }
+  </script>
+
+</body>
+</html>
